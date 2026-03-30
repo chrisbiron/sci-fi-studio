@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dither Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h1 class="logo"><svg width="498" height="87" viewBox="0 0 498 87" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M121.125 83.1557C121.125 76.4056 120.054 70.6282 117.944 65.8524C113.075 67.7375 108.232 71.0637 103.459 75.8367L101.956 77.3399L92.9402 68.3232L94.4421 66.8213C99.2148 62.0486 102.543 57.2063 104.428 52.3377C99.6518 50.2277 93.8747 49.1549 87.1245 49.1549L82.8755 49.1549C60.563 49.1549 48.8747 60.8432 48.8747 83.1557L48.8747 85.2801L36.1253 85.2801L36.1253 83.1557C36.1253 60.8432 24.437 49.1549 2.12449 49.1549L3.6751e-07 49.1549L1.4821e-06 36.4054L2.12449 36.4054C24.437 36.4054 36.1253 24.7171 36.1253 2.40462L36.1253 0.280138L48.8747 0.280139L48.8747 2.40463C48.8747 24.7171 60.563 36.4054 82.8755 36.4054L87.1245 36.4054C93.875 36.4054 99.653 35.334 104.429 33.2239C102.544 28.3545 99.2169 23.5112 94.4434 18.7377L92.9402 17.2358L101.956 8.22036L103.459 9.72228C108.232 14.4955 113.075 17.8228 117.944 19.7079C120.054 14.932 121.125 9.15467 121.125 2.40463L121.125 0.280146L133.875 0.280147L133.875 2.40463C133.875 9.15489 134.948 14.932 137.058 19.7079C141.926 17.8228 146.768 14.4951 151.541 9.72229L153.044 8.22036L162.06 17.2358L160.558 18.7377C155.784 23.5111 152.457 28.3546 150.572 33.2239C155.348 35.3337 161.125 36.4054 167.876 36.4054L170 36.4054L170 49.1549L167.876 49.1549C161.126 49.1549 155.349 50.228 150.574 52.3377C152.459 57.2062 155.785 62.0487 160.558 66.8213L162.06 68.3232L153.044 77.3399L151.541 75.8367C146.768 71.0641 141.926 67.7375 137.058 65.8524C134.948 70.6283 133.875 76.4054 133.875 83.1557L133.875 85.2801L121.125 85.2801L121.125 83.1557Z" fill="currentColor"/>
+<path d="M497.553 55.5498C497.553 73.5597 485.999 86.3592 469.462 86.3592C453.038 86.3592 441.371 73.5597 441.371 55.5498C441.371 37.5399 453.038 24.7404 469.462 24.7404C485.999 24.7404 497.553 37.5399 497.553 55.5498ZM454.51 55.5498C454.51 67.5564 459.947 75.8251 469.462 75.8251C478.976 75.8251 484.413 67.5564 484.413 55.5498C484.413 43.5432 478.976 35.2745 469.462 35.2745C459.947 35.2745 454.51 43.5432 454.51 55.5498Z" fill="currentColor"/>
+<path d="M434.545 26.0996V85H421.405V26.0996H434.545Z" fill="currentColor"/>
+<path d="M398.927 76.7313C395.642 82.055 388.959 86.3592 380.69 86.3592C365.172 86.3592 355.091 72.5403 355.091 55.5498C355.091 38.5593 365.172 24.7404 380.69 24.7404C388.959 24.7404 395.642 29.0446 398.927 34.3683V2.3129H412.066V85H398.927V76.7313ZM399.493 55.5498C399.493 43.4299 393.716 35.2745 383.862 35.2745C373.894 35.2745 368.344 43.4299 368.344 55.5498C368.344 67.6697 373.894 75.8251 383.862 75.8251C393.716 75.8251 399.493 67.6697 399.493 55.5498Z" fill="currentColor"/>
+<path d="M348.129 26.0996V85H334.99V77.2976C331.932 81.9417 326.268 86.3592 317.886 86.3592C305.653 86.3592 297.951 77.4109 297.951 64.4981V26.0996H311.09V61.8929C311.09 69.9351 314.715 75.3721 322.417 75.3721C328.987 75.3721 334.99 70.5015 334.99 61.1V26.0996H348.129Z" fill="currentColor"/>
+<path d="M266.3 70.3882V36.8603H258.711V26.0996H266.3V11.3745H279.326V26.0996H291.559V36.8603H279.326V68.6891C279.326 72.7669 281.025 74.2394 284.989 74.2394H291.559V85H281.478C272.19 85 266.3 80.4692 266.3 70.3882Z" fill="currentColor"/>
+<path d="M190.113 59.1744H204.612C206.198 69.8218 213.787 74.5791 225.114 74.5791C235.195 74.5791 243.01 70.1616 243.01 62.1194C243.01 55.5498 239.272 52.6048 230.777 50.9057L213.673 47.3943C202.346 45.1289 192.945 39.2389 192.945 25.9863C192.945 11.8276 205.065 0.953644 223.301 0.953644C242.217 0.953644 253.998 11.0347 255.697 27.0057H241.651C240.745 18.737 234.289 12.7337 223.075 12.7337C213.22 12.7337 206.198 17.9441 206.198 24.8536C206.198 30.8569 209.596 33.5754 217.298 35.1612L233.949 38.3327C247.654 41.0512 256.603 48.074 256.603 61.1C256.603 76.618 242.331 86.3592 225 86.3592C205.178 86.3592 191.699 76.5047 190.113 59.1744Z" fill="currentColor"/>
+<path d="M427.918 17.7929C432.193 17.7929 435.658 14.3276 435.658 10.0529C435.658 5.77821 432.193 2.3129 427.918 2.3129C423.644 2.3129 420.178 5.77821 420.178 10.0529C420.178 14.3276 423.644 17.7929 427.918 17.7929Z" fill="currentColor"/>
+</svg></h1>
+        <button id="toggle-sidebar" class="icon-btn" title="Hide sidebar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="sidebar-content">
+        <section class="control-section">
+          <h2>Input</h2>
+          <div class="upload-wrapper" id="upload-wrapper">
+            <label class="upload-area" id="upload-area">
+              <input type="file" id="file-input" accept="image/*,video/*" hidden />
+              <span class="upload-text">Drop file or click to upload</span>
+              <span class="upload-hint">Image or Video</span>
+            </label>
+            <div class="preview-area hidden" id="preview-area">
+              <div class="preview-media">
+                <img id="preview-image" class="hidden" />
+                <video id="preview-video" class="hidden" muted loop></video>
+              </div>
+              <div class="preview-info">
+                <span class="preview-name" id="preview-name"></span>
+                <button class="preview-swap" id="preview-swap" title="Replace file">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13.5 2.5L2.5 13.5M2.5 2.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h2>Frame</h2>
+
+          <div class="control">
+            <label style="font-size:12px;font-weight:500;display:block;margin-bottom:6px;">Aspect Ratio</label>
+            <div class="ratio-buttons" id="ratio-buttons">
+              <button class="ratio-btn active" data-ratio="original">Original</button>
+              <button class="ratio-btn" data-ratio="1:1">1:1</button>
+              <button class="ratio-btn" data-ratio="16:9">16:9</button>
+              <button class="ratio-btn" data-ratio="9:16">9:16</button>
+            </div>
+          </div>
+
+          <div class="control">
+            <div class="control-header">
+              <label for="image-scale">Image Scale</label>
+              <span class="control-value" id="image-scale-value">100%</span>
+            </div>
+            <div class="scale-row">
+              <input type="range" id="image-scale" min="10" max="300" value="100" step="1" />
+              <button class="btn fit-btn" id="fit-to-canvas">Fit</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h2>Adjustments</h2>
+
+          <div class="control">
+            <div class="control-header">
+              <label for="scale">Scale</label>
+              <span class="control-value" id="scale-value">20</span>
+            </div>
+            <input type="range" id="scale" min="2" max="50" value="20" step="1" />
+          </div>
+
+          <div class="control">
+            <div class="control-header">
+              <label for="gamma">Gamma</label>
+              <span class="control-value" id="gamma-value">1.0</span>
+            </div>
+            <input type="range" id="gamma" min="0.2" max="3.0" value="1.0" step="0.05" />
+          </div>
+
+          <div class="control">
+            <div class="control-header">
+              <label for="contrast">Contrast</label>
+              <span class="control-value" id="contrast-value">1.0</span>
+            </div>
+            <input type="range" id="contrast" min="0.5" max="3.0" value="1.0" step="0.05" />
+          </div>
+
+          <div class="control">
+            <div class="control-header">
+              <label for="brightness">Brightness</label>
+              <span class="control-value" id="brightness-value">0</span>
+            </div>
+            <input type="range" id="brightness" min="-100" max="100" value="0" step="1" />
+          </div>
+
+          <div class="control">
+            <div class="control-header">
+              <label for="threshold1"><svg class="threshold-icon" width="14" height="14" viewBox="0 0 64 64"><path d="M37 0C37 6.08722 37.6501 10.9695 39.1162 14.8174C42.8741 13.1333 46.787 10.1417 51.0918 5.83691L58.1631 12.9082C53.8588 17.2125 50.8658 21.1243 49.1816 24.8818C53.0297 26.3483 57.912 27 64 27V37C57.9123 37 53.0296 37.6499 49.1816 39.1162C50.8657 42.8742 53.8582 46.7869 58.1631 51.0918L51.0918 58.1631C46.7867 53.858 42.8743 50.8647 39.1162 49.1807C37.6497 53.0288 37 57.9119 37 64H27C27 57.9122 26.3492 53.0297 24.8828 49.1816C21.1251 50.8658 17.2128 53.8585 12.9082 58.1631L5.83691 51.0918C10.1417 46.787 13.1333 42.8741 14.8174 39.1162C10.9695 37.6501 6.08722 37 0 37V27C6.08756 27 10.9694 26.3481 14.8174 24.8818C13.1332 21.1244 10.1411 17.2124 5.83691 12.9082L12.9082 5.83691C17.2124 10.1411 21.1244 13.1332 24.8818 14.8174C26.3481 10.9694 27 6.08756 27 0H37Z" fill="currentColor"/></svg> Threshold</label>
+              <span class="control-value" id="threshold1-value">0.90</span>
+            </div>
+            <input type="range" id="threshold1" min="0" max="1" value="0.90" step="0.01" />
+          </div>
+
+          <div class="control">
+            <div class="control-header">
+              <label for="threshold2"><svg class="threshold-icon" width="14" height="14" viewBox="0 0 64 64"><path d="M27 0H37C37 20 44 27 64 27V37C44 37 37 44 37 64H27C27 44 20 37 0 37V27C20 27 27 20 27 0Z" fill="currentColor"/></svg> Threshold</label>
+              <span class="control-value" id="threshold2-value">0.50</span>
+            </div>
+            <input type="range" id="threshold2" min="0" max="1" value="0.50" step="0.01" />
+          </div>
+
+          <div class="control">
+            <div class="control-header">
+              <label for="threshold3"><svg class="threshold-icon" width="14" height="14" viewBox="0 0 64 64"><path d="M0 37V27H64V37H0Z" fill="currentColor"/></svg> Threshold</label>
+              <span class="control-value" id="threshold3-value">0.30</span>
+            </div>
+            <input type="range" id="threshold3" min="0" max="1" value="0.30" step="0.01" />
+          </div>
+
+          <div class="control">
+            <label class="toggle-control">
+              <input type="checkbox" id="invert" />
+              <span>Invert</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="control-section" id="animate-section">
+          <h2>Animate</h2>
+          <div class="control">
+            <label class="toggle-control">
+              <input type="checkbox" id="animate" />
+              <span>Enable</span>
+            </label>
+          </div>
+          <div class="control">
+            <div class="control-header">
+              <label for="animate-strength">Strength</label>
+              <span class="control-value" id="animate-strength-value">0.5</span>
+            </div>
+            <input type="range" id="animate-strength" min="0.01" max="1.0" value="0.5" step="0.01" />
+          </div>
+          <div class="control">
+            <div class="control-header">
+              <label for="animate-speed">Speed</label>
+              <span class="control-value" id="animate-speed-value">50</span>
+            </div>
+            <input type="range" id="animate-speed" min="0" max="100" value="50" step="1" />
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h2>Colors</h2>
+          <div class="color-controls">
+            <div class="control">
+              <label for="bg-color">Background</label>
+              <div class="color-input-wrap">
+                <input type="color" id="bg-color" value="#000000" />
+                <span class="color-hex" id="bg-color-hex">#000000</span>
+              </div>
+            </div>
+            <div class="control">
+              <label for="shape-color">Shape</label>
+              <div class="color-input-wrap">
+                <input type="color" id="shape-color" value="#ffffff" />
+                <span class="color-hex" id="shape-color-hex">#FFFFFF</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h2>Export</h2>
+          <div class="export-buttons" id="export-buttons">
+            <button class="btn" id="export-svg" disabled>SVG</button>
+            <button class="btn" id="export-png" disabled>PNG</button>
+            <button class="btn" id="export-jpg" disabled>JPG</button>
+            <button class="btn" id="export-mp4" disabled style="display:none;">MP4</button>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <button id="show-sidebar" class="icon-btn show-sidebar-btn hidden" title="Show sidebar">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3L11 8L6 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <main id="canvas-area" class="canvas-area">
+      <div class="canvas-container" id="canvas-container">
+        <canvas id="output-canvas"></canvas>
+        <div class="placeholder" id="placeholder">
+          <p>Upload an image or video to get started</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Video element for video input -->
+  <video id="source-video" style="display:none;" muted></video>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
