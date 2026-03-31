@@ -486,12 +486,6 @@ function scheduleRender() {
   renderTimeout = requestAnimationFrame(renderDither);
 }
 
-// Force a single re-render even for video (used by pan)
-function forceRender() {
-  if (renderTimeout) cancelAnimationFrame(renderTimeout);
-  renderTimeout = requestAnimationFrame(renderDither);
-}
-
 // --- Core dither rendering ---
 function renderDither() {
   if (!sourceImage && !isVideo) return;
@@ -543,53 +537,62 @@ function renderDither() {
 
   const scaleFactor = cellSize / SHAPE_VIEWBOX;
 
+  // Pre-compute values that are constant across all cells
+  const brightnessOffset = settings.brightness / 255;
+  const contrastVal = settings.contrast;
+  const invGamma = 1 / settings.gamma;
+  const doInvert = settings.invert;
+  const t1 = settings.threshold1;
+  const t2 = settings.threshold2;
+  const t3 = settings.threshold3;
+
+  // Pre-compute animation values once per frame
+  let doAnimate = false, animStrength, animT, animNoiseScale;
+  if (animateEnabled && !isVideo) {
+    doAnimate = true;
+    animStrength = parseFloat(animateStrengthSlider.value) * 0.5;
+    const speed = parseInt(animateSpeedSlider.value) / 50;
+    animT = animTime * 0.001 * speed;
+    animNoiseScale = 0.15;
+  }
+
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const i = (y * cols + x) * 4;
       let lum = (0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2]) / 255;
 
-      // Apply brightness
-      lum += settings.brightness / 255;
-      lum = Math.max(0, Math.min(1, lum));
+      // Apply brightness + contrast + gamma in one pass with minimal clamping
+      lum = ((lum + brightnessOffset - 0.5) * contrastVal) + 0.5;
+      if (lum < 0) lum = 0; else if (lum > 1) lum = 1;
+      if (invGamma !== 1) lum = lum ** invGamma;
 
-      // Apply contrast
-      lum = ((lum - 0.5) * settings.contrast) + 0.5;
-      lum = Math.max(0, Math.min(1, lum));
-
-      // Apply gamma
-      lum = Math.pow(Math.max(0, Math.min(1, lum)), 1 / settings.gamma);
-
-      // Invert
-      if (settings.invert) lum = 1 - lum;
+      if (doInvert) lum = 1 - lum;
 
       // Apply animated noise to luminance
-      if (animateEnabled && !isVideo) {
-        const strength = parseFloat(animateStrengthSlider.value);
-        const speedRaw = parseInt(animateSpeedSlider.value);
-        const speed = speedRaw / 50; // 0-100 slider, 50 = 1x (original default)
-        const t = animTime * 0.001 * speed;
-        const noiseScale = 0.15;
-        // Sample noise at two offset planes that evolve over time in different directions
-        // This avoids the directional wave look and creates more organic movement
-        const n1 = fbm(x * noiseScale + t * 0.3, y * noiseScale + t * 0.2, 3);
-        const n2 = fbm(x * noiseScale * 1.3 - t * 0.25, y * noiseScale * 1.3 + t * 0.15, 2);
-        const n = (n1 + n2) * 0.5;
-        lum += n * strength * 0.5;
-        lum = Math.max(0, Math.min(1, lum));
+      if (doAnimate) {
+        const nx = x * animNoiseScale;
+        const ny = y * animNoiseScale;
+        const n1 = fbm(nx + animT * 0.3, ny + animT * 0.2, 3);
+        const n2 = fbm(nx * 1.3 - animT * 0.25, ny * 1.3 + animT * 0.15, 2);
+        lum += (n1 + n2) * animStrength;
+        if (lum < 0) lum = 0; else if (lum > 1) lum = 1;
       }
 
-      // Map luminance to shape index
-      // Bright pixels → dense shapes (white on black), dark pixels → blank
-      const shapeIndex = getShapeIndex(lum, settings);
-      if (shapeIndex < 0) continue; // blank
+      // Inline shape index lookup — avoid function call overhead
+      let shapeIndex;
+      if (lum >= t1) shapeIndex = 0;
+      else if (lum >= t2) shapeIndex = 1;
+      else if (lum >= t3) shapeIndex = 2;
+      else continue; // blank
 
-      ctx.save();
-      ctx.translate(x * cellSize, y * cellSize);
-      ctx.scale(scaleFactor, scaleFactor);
+      // setTransform is faster than save/translate/scale/restore
+      ctx.setTransform(scaleFactor, 0, 0, scaleFactor, x * cellSize, y * cellSize);
       ctx.fill(SHAPES[shapeIndex]);
-      ctx.restore();
     }
   }
+
+  // Reset transform for any subsequent drawing
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function getShapeIndex(darkness, settings) {

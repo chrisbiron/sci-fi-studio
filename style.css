@@ -528,31 +528,3 @@ input[type="color"]::-webkit-color-swatch {
 .placeholder p {
   opacity: 0.6;
 }
-
-/* Video playback controls */
-.video-controls {
-  position: absolute;
-  bottom: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 12px;
-}
-
-.video-controls button {
-  background: none;
-  border: none;
-  color: var(--text);
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-}
-
-.video-controls input[type="range"] {
-  width: 200px;
-}
