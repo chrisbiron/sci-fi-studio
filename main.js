@@ -50,9 +50,14 @@ const exportPng = document.getElementById('export-png');
 const exportJpg = document.getElementById('export-jpg');
 const exportMp4 = document.getElementById('export-mp4');
 
+// Webcam
+const webcamBtn = document.getElementById('webcam-btn');
+
 // --- State ---
 let sourceImage = null;
 let isVideo = false;
+let isWebcam = false;
+let webcamStream = null;
 let animFrameId = null;
 let offscreen = document.createElement('canvas');
 let offCtx = offscreen.getContext('2d');
@@ -73,7 +78,7 @@ let panStartY = 0;
 canvas.style.cursor = 'grab';
 
 canvas.addEventListener('mousedown', (e) => {
-  if (!sourceImage && !isVideo) return;
+  if (!sourceImage && !isVideo && !isWebcam) return;
   isDragging = true;
   dragStartX = e.clientX;
   dragStartY = e.clientY;
@@ -88,8 +93,9 @@ window.addEventListener('mousemove', (e) => {
   const dy = e.clientY - dragStartY;
 
   // Convert screen delta to source-image-space delta
-  const srcW = isVideo ? sourceVideo.videoWidth : sourceImage.naturalWidth;
-  const srcH = isVideo ? sourceVideo.videoHeight : sourceImage.naturalHeight;
+  const isLiveVideo = isVideo || isWebcam;
+  const srcW = isLiveVideo ? sourceVideo.videoWidth : sourceImage.naturalWidth;
+  const srcH = isLiveVideo ? sourceVideo.videoHeight : sourceImage.naturalHeight;
   const { canvasW, canvasH } = getCanvasDimensions(srcW, srcH);
   const settings = getSettings();
   const cellSize = settings.scale;
@@ -104,7 +110,7 @@ window.addEventListener('mousemove', (e) => {
 
   panX = panStartX + dx / displayScale;
   panY = panStartY + dy / displayScale;
-  if (!isVideo) scheduleRender();
+  if (!isVideo && !isWebcam) scheduleRender();
 });
 
 window.addEventListener('mouseup', () => {
@@ -142,9 +148,10 @@ imageScaleSlider.addEventListener('input', () => {
 });
 
 fitToCanvasBtn.addEventListener('click', () => {
-  if (!sourceImage && !isVideo) return;
-  const srcW = isVideo ? sourceVideo.videoWidth : sourceImage.naturalWidth;
-  const srcH = isVideo ? sourceVideo.videoHeight : sourceImage.naturalHeight;
+  if (!sourceImage && !isVideo && !isWebcam) return;
+  const isLiveVideo = isVideo || isWebcam;
+  const srcW = isLiveVideo ? sourceVideo.videoWidth : sourceImage.naturalWidth;
+  const srcH = isLiveVideo ? sourceVideo.videoHeight : sourceImage.naturalHeight;
   const { canvasW, canvasH } = getCanvasDimensions(srcW, srcH);
   // Calculate scale needed to cover the canvas
   const scaleX = canvasW / srcW;
@@ -285,7 +292,10 @@ function clearPreview() {
   previewImage.src = '';
   previewVideo.classList.add('hidden');
   previewVideo.src = '';
+  previewVideo.srcObject = null;
   previewName.textContent = '';
+  webcamBtn.classList.remove('active');
+  webcamBtn.textContent = 'Webcam';
 }
 
 // Remove file and reset
@@ -295,6 +305,7 @@ previewSwap.addEventListener('click', (e) => {
   clearPreview();
   sourceImage = null;
   isVideo = false;
+  isWebcam = false;
   fileInput.value = '';
   canvas.width = 0;
   canvas.height = 0;
@@ -334,9 +345,104 @@ function cleanup() {
     animFrameId = null;
   }
   stopAnimateLoop();
+  stopWebcam();
   sourceVideo.pause();
   sourceVideo.src = '';
 }
+
+// --- Webcam ---
+async function startWebcam() {
+  cleanup();
+  clearPreview();
+  sourceImage = null;
+  isVideo = false;
+  fileInput.value = '';
+  panX = 0;
+  panY = 0;
+
+  try {
+    webcamStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    sourceVideo.srcObject = webcamStream;
+    sourceVideo.loop = false;
+    sourceVideo.play();
+    isWebcam = true;
+
+    sourceVideo.addEventListener('loadeddata', () => {
+      placeholder.classList.add('hidden');
+      // Show image exports for webcam snapshots, hide MP4
+      exportSvg.disabled = false;
+      exportPng.disabled = false;
+      exportJpg.disabled = false;
+      exportSvg.style.display = '';
+      exportPng.style.display = '';
+      exportJpg.style.display = '';
+      exportMp4.disabled = true;
+      exportMp4.style.display = 'none';
+      // Hide animate section
+      animateSection.classList.add('hidden');
+      animateToggle.checked = false;
+      animateEnabled = false;
+      // Show webcam preview
+      uploadArea.classList.add('hidden');
+      previewArea.classList.remove('hidden');
+      previewImage.classList.add('hidden');
+      previewVideo.classList.remove('hidden');
+      previewVideo.srcObject = webcamStream;
+      previewVideo.play();
+      previewName.textContent = 'Webcam';
+      webcamBtn.classList.add('active');
+      webcamBtn.textContent = 'Stop Webcam';
+      // Set webcam-optimized defaults
+      controls.scale.value = 8;
+      document.getElementById('scale-value').textContent = '8';
+      controls.gamma.value = 0.7;
+      document.getElementById('gamma-value').textContent = '0.7';
+      controls.threshold1.value = 0.7;
+      document.getElementById('threshold1-value').textContent = '0.70';
+      startVideoLoop();
+    }, { once: true });
+  } catch (err) {
+    console.error('Webcam access denied:', err);
+    alert('Could not access webcam. Please allow camera access and try again.');
+  }
+}
+
+function stopWebcam() {
+  if (webcamStream) {
+    webcamStream.getTracks().forEach((t) => t.stop());
+    webcamStream = null;
+  }
+  if (isWebcam) {
+    sourceVideo.srcObject = null;
+    isWebcam = false;
+    webcamBtn.classList.remove('active');
+    webcamBtn.textContent = 'Webcam';
+    previewVideo.srcObject = null;
+  }
+}
+
+webcamBtn.addEventListener('click', () => {
+  if (isWebcam) {
+    stopWebcam();
+    if (animFrameId) {
+      cancelAnimationFrame(animFrameId);
+      animFrameId = null;
+    }
+    clearPreview();
+    canvas.width = 0;
+    canvas.height = 0;
+    placeholder.classList.remove('hidden');
+    exportSvg.disabled = true;
+    exportPng.disabled = true;
+    exportJpg.disabled = true;
+    exportMp4.disabled = true;
+  } else {
+    startWebcam();
+  }
+});
 
 function enableExports(video) {
   exportSvg.disabled = video;
@@ -480,7 +586,7 @@ function fbm(x, y, octaves) {
 
 let renderTimeout = null;
 function scheduleRender() {
-  if (isVideo) return; // video has its own render loop
+  if (isVideo || isWebcam) return; // video/webcam has its own render loop
   if (animateEnabled && animateFrameId) return; // animate loop handles rendering
   if (renderTimeout) cancelAnimationFrame(renderTimeout);
   renderTimeout = requestAnimationFrame(renderDither);
@@ -488,13 +594,14 @@ function scheduleRender() {
 
 // --- Core dither rendering ---
 function renderDither() {
-  if (!sourceImage && !isVideo) return;
+  if (!sourceImage && !isVideo && !isWebcam) return;
 
   const settings = getSettings();
   const cellSize = settings.scale;
-  const source = isVideo ? sourceVideo : sourceImage;
-  const srcW = isVideo ? sourceVideo.videoWidth : sourceImage.naturalWidth;
-  const srcH = isVideo ? sourceVideo.videoHeight : sourceImage.naturalHeight;
+  const isLiveVideo = isVideo || isWebcam;
+  const source = isLiveVideo ? sourceVideo : sourceImage;
+  const srcW = isLiveVideo ? sourceVideo.videoWidth : sourceImage.naturalWidth;
+  const srcH = isLiveVideo ? sourceVideo.videoHeight : sourceImage.naturalHeight;
 
   if (!srcW || !srcH) return;
 
@@ -606,7 +713,7 @@ function getShapeIndex(darkness, settings) {
 // --- Video loop ---
 function startVideoLoop() {
   function loop() {
-    if (!isVideo) return;
+    if (!isVideo && !isWebcam) return;
     renderDither();
     animFrameId = requestAnimationFrame(loop);
   }
@@ -701,18 +808,33 @@ exportMp4.addEventListener('click', async () => {
 
   exportMp4.disabled = true;
   exportMp4.textContent = 'Encoding...';
+  exportMp4.classList.add('encoding');
 
   try {
     // Pause live rendering during export
     const wasPlaying = !sourceVideo.paused;
     if (animFrameId) cancelAnimationFrame(animFrameId);
 
-    const fps = 30;
+    // Detect source video frame rate via VideoFrame API, fallback to 30fps
+    let fps = 30;
+    try {
+      if (typeof VideoFrame !== 'undefined') {
+        sourceVideo.currentTime = 0;
+        await new Promise((r) => { sourceVideo.onseeked = r; });
+        const vf = new VideoFrame(sourceVideo);
+        if (vf.duration) {
+          fps = Math.round(1_000_000 / vf.duration); // duration is in microseconds
+        }
+        vf.close();
+      }
+    } catch (_) { /* fallback to 30fps */ }
+
     const duration = sourceVideo.duration;
     const totalFrames = Math.floor(duration * fps);
 
     // Use MediaRecorder with canvas captureStream
-    const stream = canvas.captureStream(0); // 0 = manual frame control
+    // Pass fps so the stream encodes at the correct rate
+    const stream = canvas.captureStream(fps);
     const track = stream.getVideoTracks()[0];
 
     const chunks = [];
@@ -739,8 +861,8 @@ exportMp4.addEventListener('click', async () => {
       renderDither();
       // Request a frame from the stream
       if (track.requestFrame) track.requestFrame();
-      // Small delay to let MediaRecorder capture the frame
-      await new Promise((r) => setTimeout(r, 1000 / fps));
+      // Brief yield to let MediaRecorder capture the frame
+      await new Promise((r) => setTimeout(r, 0));
     }
 
     recorder.stop();
@@ -765,6 +887,7 @@ exportMp4.addEventListener('click', async () => {
   } finally {
     exportMp4.disabled = false;
     exportMp4.textContent = 'MP4';
+    exportMp4.classList.remove('encoding');
   }
 });
 

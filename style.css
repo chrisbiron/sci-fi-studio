@@ -211,6 +211,24 @@ body {
   border-color: var(--text-dim);
 }
 
+/* Webcam button */
+.webcam-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.webcam-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
 /* Ratio buttons */
 .ratio-buttons {
   display: flex;
@@ -527,4 +545,26 @@ input[type="color"]::-webkit-color-swatch {
 
 .placeholder p {
   opacity: 0.6;
+}
+
+/* Encoding shimmer effect */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.btn.encoding {
+  opacity: 1;
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 0%,
+    var(--border) 25%,
+    var(--text-dim) 50%,
+    var(--border) 75%,
+    var(--surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+  color: var(--text);
+  border-color: var(--border);
 }
