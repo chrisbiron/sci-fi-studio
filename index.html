@@ -247,6 +247,12 @@
 
         <section class="control-section">
           <h2>Export</h2>
+          <div class="control" id="export-duration-control">
+            <div class="control-header">
+              <label for="export-duration">Video Length (seconds)</label>
+            </div>
+            <input type="number" id="export-duration" min="0.1" step="0.1" placeholder="auto" />
+          </div>
           <div class="export-buttons" id="export-buttons">
             <button class="btn" id="export-svg" disabled>SVG</button>
             <button class="btn" id="export-png" disabled>PNG</button>

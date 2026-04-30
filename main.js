@@ -61,6 +61,7 @@ const exportSvg = document.getElementById('export-svg');
 const exportPng = document.getElementById('export-png');
 const exportJpg = document.getElementById('export-jpg');
 const exportMp4 = document.getElementById('export-mp4');
+const exportDurationInput = document.getElementById('export-duration');
 
 // Webcam
 const webcamBtn = document.getElementById('webcam-btn');
@@ -259,6 +260,9 @@ function handleFile(file) {
     sourceVideo.addEventListener('loadeddata', () => {
       placeholder.classList.add('hidden');
       enableExports(true);
+      // Default export duration to source video length (placeholder, user can override)
+      exportDurationInput.value = '';
+      exportDurationInput.placeholder = sourceVideo.duration.toFixed(1);
       startVideoLoop();
     }, { once: true });
   } else {
@@ -271,6 +275,8 @@ function handleFile(file) {
       sourceImage = img;
       placeholder.classList.add('hidden');
       enableExports(false);
+      exportDurationInput.value = '';
+      exportDurationInput.placeholder = '5';
       if (animateEnabled || animateScaleEnabled) {
         if (animateScaleEnabled) animStartTime = performance.now();
         startAnimateLoop();
@@ -392,6 +398,8 @@ async function startWebcam() {
 
     sourceVideo.addEventListener('loadeddata', () => {
       placeholder.classList.add('hidden');
+      exportDurationInput.value = '';
+      exportDurationInput.placeholder = '5';
       // Show image exports for webcam snapshots, hide MP4
       exportSvg.disabled = false;
       exportPng.disabled = false;
@@ -940,6 +948,10 @@ exportMp4.addEventListener('click', async () => {
     let totalFrames;
     let prepareFrame; // (frame) => Promise<void>
 
+    // User-supplied duration overrides the default (source video length, or 5s for images)
+    const customDuration = parseFloat(exportDurationInput.value);
+    const hasCustomDuration = Number.isFinite(customDuration) && customDuration > 0;
+
     if (isVideo) {
       // Pause live rendering during export
       if (animFrameId) cancelAnimationFrame(animFrameId);
@@ -955,16 +967,19 @@ exportMp4.addEventListener('click', async () => {
         }
       } catch (_) { /* fallback to 30fps */ }
 
-      totalFrames = Math.floor(sourceVideo.duration * fps);
+      const durationSec = hasCustomDuration ? customDuration : sourceVideo.duration;
+      totalFrames = Math.floor(durationSec * fps);
+      // Loop the source video if user requested a longer duration than the source
+      const sourceDuration = sourceVideo.duration;
       prepareFrame = async (frame) => {
-        sourceVideo.currentTime = frame / fps;
+        sourceVideo.currentTime = (frame / fps) % sourceDuration;
         await new Promise((r) => { sourceVideo.onseeked = r; });
       };
     } else {
       // Image (or webcam) → animated video. Default 5s @ 30fps.
       stopAnimateLoop();
-      const durationSec = 5;
-      totalFrames = durationSec * fps;
+      const durationSec = hasCustomDuration ? customDuration : 5;
+      totalFrames = Math.floor(durationSec * fps);
       prepareFrame = async () => { /* no source seek needed */ };
     }
 
