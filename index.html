@@ -30,8 +30,7 @@
       </div>
 
       <div class="sidebar-content">
-        <section class="control-section">
-          <h2>Input</h2>
+        <section class="control-section input-section">
           <div class="upload-wrapper" id="upload-wrapper">
             <label class="upload-area" id="upload-area">
               <input type="file" id="file-input" accept="image/*,video/*" hidden />
@@ -72,7 +71,7 @@
 
           <div class="control">
             <div class="control-header">
-              <label for="image-scale">Image Scale</label>
+              <label for="image-scale">Image Zoom</label>
               <span class="control-value" id="image-scale-value">100%</span>
             </div>
             <div class="scale-row">
@@ -87,10 +86,10 @@
 
           <div class="control">
             <div class="control-header">
-              <label for="scale">Scale</label>
-              <span class="control-value" id="scale-value">20</span>
+              <label for="scale">Grid Scale</label>
+              <span class="control-value" id="scale-value">10</span>
             </div>
-            <input type="range" id="scale" min="2" max="50" value="20" step="1" />
+            <input type="range" id="scale" min="1" max="50" value="10" step="1" />
           </div>
 
           <div class="control">
@@ -151,25 +150,78 @@
 
         <section class="control-section" id="animate-section">
           <h2>Animate</h2>
+          <div id="animate-noise-group">
+            <div class="control">
+              <label class="toggle-control">
+                <input type="checkbox" id="animate" />
+                <span>Noise</span>
+              </label>
+            </div>
+            <div class="control">
+              <div class="control-header">
+                <label for="animate-strength">Strength</label>
+                <span class="control-value" id="animate-strength-value">0.5</span>
+              </div>
+              <input type="range" id="animate-strength" min="0.01" max="1.0" value="0.5" step="0.01" />
+            </div>
+            <div class="control">
+              <div class="control-header">
+                <label for="animate-speed">Speed</label>
+                <span class="control-value" id="animate-speed-value">50</span>
+              </div>
+              <input type="range" id="animate-speed" min="0" max="100" value="50" step="1" />
+            </div>
+
+            <div class="animate-divider"></div>
+          </div>
+
           <div class="control">
             <label class="toggle-control">
-              <input type="checkbox" id="animate" />
-              <span>Enable</span>
+              <input type="checkbox" id="animate-scale" />
+              <span>Grid Scale</span>
             </label>
           </div>
           <div class="control">
             <div class="control-header">
-              <label for="animate-strength">Strength</label>
-              <span class="control-value" id="animate-strength-value">0.5</span>
+              <label for="scale-from">From</label>
+              <span class="control-value" id="scale-from-value">3</span>
             </div>
-            <input type="range" id="animate-strength" min="0.01" max="1.0" value="0.5" step="0.01" />
+            <input type="range" id="scale-from" min="1" max="50" value="3" step="1" />
           </div>
           <div class="control">
             <div class="control-header">
-              <label for="animate-speed">Speed</label>
-              <span class="control-value" id="animate-speed-value">50</span>
+              <label for="scale-to">To</label>
+              <span class="control-value" id="scale-to-value">15</span>
             </div>
-            <input type="range" id="animate-speed" min="0" max="100" value="50" step="1" />
+            <input type="range" id="scale-to" min="1" max="50" value="15" step="1" />
+          </div>
+          <div class="control">
+            <div class="control-header">
+              <label for="scale-duration">Duration</label>
+              <span class="control-value" id="scale-duration-value">2.0s</span>
+            </div>
+            <input type="range" id="scale-duration" min="0.1" max="10" value="2" step="0.1" />
+          </div>
+          <div class="control">
+            <label for="scale-easing" style="font-size:12px;font-weight:500;display:block;margin-bottom:6px;">Easing</label>
+            <select id="scale-easing" class="select-input">
+              <option value="linear">Linear</option>
+              <option value="easeInQuad">Ease In</option>
+              <option value="easeOutQuad">Ease Out</option>
+              <option value="easeInOutQuad" selected>Ease In Out</option>
+              <option value="easeInCubic">Ease In (Cubic)</option>
+              <option value="easeOutCubic">Ease Out (Cubic)</option>
+              <option value="easeInOutCubic">Ease In Out (Cubic)</option>
+              <option value="easeInOutSine">Ease In Out (Sine)</option>
+              <option value="easeInOutBack">Ease In Out (Back)</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="scale-direction" style="font-size:12px;font-weight:500;display:block;margin-bottom:6px;">Direction</label>
+            <select id="scale-direction" class="select-input">
+              <option value="pingpong" selected>Ping Pong</option>
+              <option value="loop">Loop</option>
+            </select>
           </div>
         </section>
 

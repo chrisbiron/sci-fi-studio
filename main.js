@@ -38,11 +38,23 @@ const controls = {
 
 // Animate controls
 const animateSection = document.getElementById('animate-section');
+const animateNoiseGroup = document.getElementById('animate-noise-group');
 const animateToggle = document.getElementById('animate');
 const animateStrengthSlider = document.getElementById('animate-strength');
 const animateStrengthValue = document.getElementById('animate-strength-value');
 const animateSpeedSlider = document.getElementById('animate-speed');
 const animateSpeedValue = document.getElementById('animate-speed-value');
+
+// Animate Grid Scale controls
+const animateScaleToggle = document.getElementById('animate-scale');
+const scaleFromSlider = document.getElementById('scale-from');
+const scaleFromValue = document.getElementById('scale-from-value');
+const scaleToSlider = document.getElementById('scale-to');
+const scaleToValue = document.getElementById('scale-to-value');
+const scaleDurationSlider = document.getElementById('scale-duration');
+const scaleDurationValue = document.getElementById('scale-duration-value');
+const scaleEasingSelect = document.getElementById('scale-easing');
+const scaleDirectionSelect = document.getElementById('scale-direction');
 
 // Export buttons
 const exportSvg = document.getElementById('export-svg');
@@ -67,8 +79,11 @@ let panX = 0; // pixel offset in source image space
 let panY = 0;
 let isDragging = false;
 let animateEnabled = false;
+let animateScaleEnabled = false;
 let animateFrameId = null;
 let animTime = 0;
+let animStartTime = 0;
+let renderScaleOverride = null; // when set, overrides DPR for output resolution (used for hi-res export)
 let dragStartX = 0;
 let dragStartY = 0;
 let panStartX = 0;
@@ -234,10 +249,9 @@ function handleFile(file) {
   if (file.type.startsWith('video/')) {
     isVideo = true;
     sourceImage = null;
-    // Disable animate for video
-    animateSection.classList.add('hidden');
-    animateToggle.checked = false;
-    animateEnabled = false;
+    // Show animate section + noise controls for video
+    animateSection.classList.remove('hidden');
+    animateNoiseGroup.classList.remove('hidden');
     stopAnimateLoop();
     sourceVideo.src = url;
     sourceVideo.loop = true;
@@ -249,14 +263,16 @@ function handleFile(file) {
     }, { once: true });
   } else {
     isVideo = false;
-    // Show animate section for images
+    // Show animate section + noise controls for images
     animateSection.classList.remove('hidden');
+    animateNoiseGroup.classList.remove('hidden');
     const img = new Image();
     img.onload = () => {
       sourceImage = img;
       placeholder.classList.add('hidden');
       enableExports(false);
-      if (animateEnabled) {
+      if (animateEnabled || animateScaleEnabled) {
+        if (animateScaleEnabled) animStartTime = performance.now();
         startAnimateLoop();
       } else {
         renderDither();
@@ -268,6 +284,7 @@ function handleFile(file) {
 
 function showPreview(file, url) {
   uploadArea.classList.add('hidden');
+  webcamBtn.classList.add('hidden');
   previewArea.classList.remove('hidden');
 
   previewName.textContent = file.name;
@@ -275,6 +292,7 @@ function showPreview(file, url) {
   if (file.type.startsWith('video/')) {
     previewImage.classList.add('hidden');
     previewVideo.classList.remove('hidden');
+    previewVideo.classList.remove('mirrored');
     previewVideo.src = url;
     previewVideo.play();
   } else {
@@ -288,9 +306,11 @@ function showPreview(file, url) {
 function clearPreview() {
   previewArea.classList.add('hidden');
   uploadArea.classList.remove('hidden');
+  webcamBtn.classList.remove('hidden');
   previewImage.classList.add('hidden');
   previewImage.src = '';
   previewVideo.classList.add('hidden');
+  previewVideo.classList.remove('mirrored');
   previewVideo.src = '';
   previewVideo.srcObject = null;
   previewName.textContent = '';
@@ -381,23 +401,23 @@ async function startWebcam() {
       exportJpg.style.display = '';
       exportMp4.disabled = true;
       exportMp4.style.display = 'none';
-      // Hide animate section
-      animateSection.classList.add('hidden');
-      animateToggle.checked = false;
-      animateEnabled = false;
+      // Show animate section + noise controls for webcam
+      animateSection.classList.remove('hidden');
+      animateNoiseGroup.classList.remove('hidden');
       // Show webcam preview
       uploadArea.classList.add('hidden');
       previewArea.classList.remove('hidden');
       previewImage.classList.add('hidden');
       previewVideo.classList.remove('hidden');
       previewVideo.srcObject = webcamStream;
+      previewVideo.classList.add('mirrored');
       previewVideo.play();
       previewName.textContent = 'Webcam';
       webcamBtn.classList.add('active');
       webcamBtn.textContent = 'Stop Webcam';
       // Set webcam-optimized defaults
-      controls.scale.value = 8;
-      document.getElementById('scale-value').textContent = '8';
+      controls.scale.value = 4;
+      document.getElementById('scale-value').textContent = '4';
       controls.gamma.value = 0.7;
       document.getElementById('gamma-value').textContent = '0.7';
       controls.threshold1.value = 0.7;
@@ -452,13 +472,62 @@ function enableExports(video) {
   exportPng.style.display = video ? 'none' : '';
   exportJpg.style.display = video ? 'none' : '';
   exportMp4.disabled = false;
-  exportMp4.style.display = video ? '' : 'none';
+  exportMp4.style.display = '';
+}
+
+// --- Easing functions ---
+const EASINGS = {
+  linear: (t) => t,
+  easeInQuad: (t) => t * t,
+  easeOutQuad: (t) => t * (2 - t),
+  easeInOutQuad: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+  easeInCubic: (t) => t * t * t,
+  easeOutCubic: (t) => { const f = t - 1; return f * f * f + 1; },
+  easeInOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+  easeInOutSine: (t) => -(Math.cos(Math.PI * t) - 1) / 2,
+  easeInOutBack: (t) => {
+    const c1 = 1.70158;
+    const c2 = c1 * 1.525;
+    return t < 0.5
+      ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
+      : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
+  },
+};
+
+// Slider values 1-50 map to cell size 2-100 (2x multiplier)
+const SCALE_MULTIPLIER = 2;
+
+function getAnimatedScale() {
+  const from = parseInt(scaleFromSlider.value);
+  const to = parseInt(scaleToSlider.value);
+  const duration = parseFloat(scaleDurationSlider.value) * 1000; // ms
+  const direction = scaleDirectionSelect.value;
+  const easingFn = EASINGS[scaleEasingSelect.value] || EASINGS.linear;
+
+  const elapsed = animTime - animStartTime;
+
+  let progress;
+  if (direction === 'pingpong') {
+    // Full cycle = duration * 2 (forward + back)
+    const cycle = (elapsed % (duration * 2)) / duration;
+    progress = cycle <= 1 ? cycle : 2 - cycle;
+  } else {
+    // Loop: A -> B, reset
+    progress = (elapsed % duration) / duration;
+  }
+
+  const eased = easingFn(progress);
+  const sliderVal = Math.max(1, Math.round(from + (to - from) * eased));
+  return sliderVal * SCALE_MULTIPLIER;
 }
 
 // --- Controls ---
 function getSettings() {
+  const scaleVal = animateScaleEnabled
+    ? getAnimatedScale()
+    : parseInt(controls.scale.value) * SCALE_MULTIPLIER;
   return {
-    scale: parseInt(controls.scale.value),
+    scale: scaleVal,
     gamma: parseFloat(controls.gamma.value),
     contrast: parseFloat(controls.contrast.value),
     brightness: parseInt(controls.brightness.value),
@@ -505,17 +574,48 @@ animateSpeedSlider.addEventListener('input', () => {
 
 animateToggle.addEventListener('change', () => {
   animateEnabled = animateToggle.checked;
-  if (animateEnabled && sourceImage && !isVideo) {
+  updateAnimateLoop();
+});
+
+// Grid Scale animation controls
+scaleFromSlider.addEventListener('input', () => {
+  scaleFromValue.textContent = scaleFromSlider.value;
+});
+scaleToSlider.addEventListener('input', () => {
+  scaleToValue.textContent = scaleToSlider.value;
+});
+scaleDurationSlider.addEventListener('input', () => {
+  scaleDurationValue.textContent = parseFloat(scaleDurationSlider.value).toFixed(1) + 's';
+});
+scaleEasingSelect.addEventListener('change', () => {
+  if (animateScaleEnabled) animStartTime = performance.now();
+});
+scaleDirectionSelect.addEventListener('change', () => {
+  if (animateScaleEnabled) animStartTime = performance.now();
+});
+
+animateScaleToggle.addEventListener('change', () => {
+  animateScaleEnabled = animateScaleToggle.checked;
+  if (animateScaleEnabled) animStartTime = performance.now();
+  updateAnimateLoop();
+});
+
+function updateAnimateLoop() {
+  // Video/webcam already render every frame via the video loop; no need to manage animate loop
+  if (isVideo || isWebcam) return;
+  const shouldLoop = (animateEnabled || animateScaleEnabled) && sourceImage;
+  if (shouldLoop) {
     startAnimateLoop();
   } else {
     stopAnimateLoop();
-    scheduleRender(); // render one clean frame
+    scheduleRender();
   }
-});
+}
 
 function startAnimateLoop() {
-  stopAnimateLoop();
+  if (animateFrameId) return; // already running
   animTime = performance.now();
+  if (animateScaleEnabled && animStartTime === 0) animStartTime = animTime;
   function loop(now) {
     animTime = now;
     renderDither();
@@ -587,7 +687,7 @@ function fbm(x, y, octaves) {
 let renderTimeout = null;
 function scheduleRender() {
   if (isVideo || isWebcam) return; // video/webcam has its own render loop
-  if (animateEnabled && animateFrameId) return; // animate loop handles rendering
+  if ((animateEnabled || animateScaleEnabled) && animateFrameId) return; // animate loop handles rendering
   if (renderTimeout) cancelAnimationFrame(renderTimeout);
   renderTimeout = requestAnimationFrame(renderDither);
 }
@@ -598,6 +698,11 @@ function renderDither() {
 
   const settings = getSettings();
   const cellSize = settings.scale;
+
+  // Reflect animated grid scale in the slider display (in slider units)
+  if (animateScaleEnabled) {
+    document.getElementById('scale-value').textContent = Math.round(cellSize / SCALE_MULTIPLIER);
+  }
   const isLiveVideo = isVideo || isWebcam;
   const source = isLiveVideo ? sourceVideo : sourceImage;
   const srcW = isLiveVideo ? sourceVideo.videoWidth : sourceImage.naturalWidth;
@@ -622,27 +727,42 @@ function renderDither() {
   const drawH = (srcH / canvasH) * rows * scale;
   const panXCells = panX / cellSize;
   const panYCells = panY / cellSize;
-  const drawX = (cols - drawW) / 2 + panXCells;
+  // Webcam is mirrored — invert horizontal pan so dragging right moves the image right
+  const effectivePanX = isWebcam ? -panXCells : panXCells;
+  const drawX = (cols - drawW) / 2 + effectivePanX;
   const drawY = (rows - drawH) / 2 + panYCells;
-  offCtx.drawImage(source, drawX, drawY, drawW, drawH);
+  if (isWebcam) {
+    offCtx.save();
+    offCtx.translate(cols, 0);
+    offCtx.scale(-1, 1);
+    offCtx.drawImage(source, drawX, drawY, drawW, drawH);
+    offCtx.restore();
+  } else {
+    offCtx.drawImage(source, drawX, drawY, drawW, drawH);
+  }
 
   const imageData = offCtx.getImageData(0, 0, cols, rows);
   const pixels = imageData.data;
 
-  // Set output canvas size
+  // Set output canvas size — render at devicePixelRatio for crisp shapes on hi-DPI displays.
+  // During hi-res export, renderScaleOverride raises this further.
+  const dpr = renderScaleOverride ?? (window.devicePixelRatio || 1);
   const outW = cols * cellSize;
   const outH = rows * cellSize;
-  canvas.width = outW;
-  canvas.height = outH;
+  canvas.width = outW * dpr;
+  canvas.height = outH * dpr;
+  canvas.style.width = outW + 'px';
+  canvas.style.height = outH + 'px';
 
   // Fill background
   ctx.fillStyle = settings.bgColor;
-  ctx.fillRect(0, 0, outW, outH);
+  ctx.fillRect(0, 0, outW * dpr, outH * dpr);
 
   // Set shape color
   ctx.fillStyle = settings.shapeColor;
 
-  const scaleFactor = cellSize / SHAPE_VIEWBOX;
+  const scaleFactor = (cellSize / SHAPE_VIEWBOX) * dpr;
+  const cellPx = cellSize * dpr;
 
   // Pre-compute values that are constant across all cells
   const brightnessOffset = settings.brightness / 255;
@@ -655,7 +775,7 @@ function renderDither() {
 
   // Pre-compute animation values once per frame
   let doAnimate = false, animStrength, animT, animNoiseScale;
-  if (animateEnabled && !isVideo) {
+  if (animateEnabled) {
     doAnimate = true;
     animStrength = parseFloat(animateStrengthSlider.value) * 0.5;
     const speed = parseInt(animateSpeedSlider.value) / 50;
@@ -693,7 +813,7 @@ function renderDither() {
       else continue; // blank
 
       // setTransform is faster than save/translate/scale/restore
-      ctx.setTransform(scaleFactor, 0, 0, scaleFactor, x * cellSize, y * cellSize);
+      ctx.setTransform(scaleFactor, 0, 0, scaleFactor, x * cellPx, y * cellPx);
       ctx.fill(SHAPES[shapeIndex]);
     }
   }
@@ -712,12 +832,13 @@ function getShapeIndex(darkness, settings) {
 
 // --- Video loop ---
 function startVideoLoop() {
-  function loop() {
+  function loop(now) {
     if (!isVideo && !isWebcam) return;
+    animTime = now || performance.now();
     renderDither();
     animFrameId = requestAnimationFrame(loop);
   }
-  loop();
+  loop(performance.now());
 }
 
 // --- Export functions ---
@@ -804,65 +925,103 @@ ${paths.join('\n')}
 
 // --- MP4 Export ---
 exportMp4.addEventListener('click', async () => {
-  if (!isVideo) return;
+  if (!sourceImage && !isVideo && !isWebcam) return;
 
   exportMp4.disabled = true;
   exportMp4.textContent = 'Encoding...';
   exportMp4.classList.add('encoding');
 
+  // Save and override animTime so animation advances at export pace, not wall-clock
+  const savedAnimTime = animTime;
+  const savedAnimStartTime = animStartTime;
+
   try {
-    // Pause live rendering during export
-    const wasPlaying = !sourceVideo.paused;
-    if (animFrameId) cancelAnimationFrame(animFrameId);
-
-    // Detect source video frame rate via VideoFrame API, fallback to 30fps
     let fps = 30;
-    try {
-      if (typeof VideoFrame !== 'undefined') {
-        sourceVideo.currentTime = 0;
-        await new Promise((r) => { sourceVideo.onseeked = r; });
-        const vf = new VideoFrame(sourceVideo);
-        if (vf.duration) {
-          fps = Math.round(1_000_000 / vf.duration); // duration is in microseconds
+    let totalFrames;
+    let prepareFrame; // (frame) => Promise<void>
+
+    if (isVideo) {
+      // Pause live rendering during export
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+
+      // Detect source video frame rate via VideoFrame API, fallback to 30fps
+      try {
+        if (typeof VideoFrame !== 'undefined') {
+          sourceVideo.currentTime = 0;
+          await new Promise((r) => { sourceVideo.onseeked = r; });
+          const vf = new VideoFrame(sourceVideo);
+          if (vf.duration) fps = Math.round(1_000_000 / vf.duration);
+          vf.close();
         }
-        vf.close();
-      }
-    } catch (_) { /* fallback to 30fps */ }
+      } catch (_) { /* fallback to 30fps */ }
 
-    const duration = sourceVideo.duration;
-    const totalFrames = Math.floor(duration * fps);
+      totalFrames = Math.floor(sourceVideo.duration * fps);
+      prepareFrame = async (frame) => {
+        sourceVideo.currentTime = frame / fps;
+        await new Promise((r) => { sourceVideo.onseeked = r; });
+      };
+    } else {
+      // Image (or webcam) → animated video. Default 5s @ 30fps.
+      stopAnimateLoop();
+      const durationSec = 5;
+      totalFrames = durationSec * fps;
+      prepareFrame = async () => { /* no source seek needed */ };
+    }
 
-    // Use MediaRecorder with canvas captureStream
-    // Pass fps so the stream encodes at the correct rate
-    const stream = canvas.captureStream(fps);
+    // Force exports to be at least 1440p on the shorter dimension for high quality.
+    const cellSize = getSettings().scale;
+    const exportSrcW = isVideo || isWebcam ? sourceVideo.videoWidth : sourceImage.naturalWidth;
+    const exportSrcH = isVideo || isWebcam ? sourceVideo.videoHeight : sourceImage.naturalHeight;
+    const { canvasW: exCW, canvasH: exCH } = getCanvasDimensions(exportSrcW, exportSrcH);
+    const exCols = Math.ceil(exCW / cellSize);
+    const exRows = Math.ceil(exCH / cellSize);
+    const exOutW = exCols * cellSize;
+    const exOutH = exRows * cellSize;
+    const TARGET_MIN = 1440;
+    const baseDpr = window.devicePixelRatio || 1;
+    renderScaleOverride = Math.max(baseDpr, TARGET_MIN / Math.min(exOutW, exOutH));
+
+    // captureStream() with no args gives manual frame-pacing via requestFrame() —
+    // captureStream(fps) auto-samples on a separate clock and drops/duplicates frames
+    // when our render exceeds 1/fps, producing jumpy output.
+    const stream = canvas.captureStream();
     const track = stream.getVideoTracks()[0];
 
     const chunks = [];
     const recorder = new MediaRecorder(stream, {
       mimeType: getSupportedMimeType(),
-      videoBitsPerSecond: 8_000_000,
+      videoBitsPerSecond: 24_000_000,
     });
 
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
     };
 
-    const done = new Promise((resolve) => {
-      recorder.onstop = resolve;
-    });
-
+    const done = new Promise((resolve) => { recorder.onstop = resolve; });
     recorder.start();
 
+    animStartTime = 0;
+    const frameInterval = 1000 / fps;
+    let nextFrameTarget = performance.now();
     for (let frame = 0; frame < totalFrames; frame++) {
-      sourceVideo.currentTime = frame / fps;
-      await new Promise((r) => {
-        sourceVideo.onseeked = r;
-      });
+      // Advance animTime in lockstep with export frames so noise/scale animation
+      // renders deterministically into the exported video.
+      animTime = (frame / fps) * 1000;
+      await prepareFrame(frame);
       renderDither();
-      // Request a frame from the stream
       if (track.requestFrame) track.requestFrame();
-      // Brief yield to let MediaRecorder capture the frame
-      await new Promise((r) => setTimeout(r, 0));
+      // Pace wall-clock so MediaRecorder timestamps each emitted frame at 1/fps.
+      // If render is faster than fps, we wait; if slower, we push immediately and
+      // the output plays back slower than realtime but stays smooth (no drops).
+      nextFrameTarget += frameInterval;
+      const wait = nextFrameTarget - performance.now();
+      if (wait > 0) {
+        await new Promise((r) => setTimeout(r, wait));
+      } else {
+        // Render was slower than frame budget — reset target so we don't accumulate debt
+        nextFrameTarget = performance.now();
+        await new Promise((r) => setTimeout(r, 0));
+      }
     }
 
     recorder.stop();
@@ -875,8 +1034,7 @@ exportMp4.addEventListener('click', async () => {
     link.click();
     URL.revokeObjectURL(link.href);
 
-    // Resume playback
-    if (wasPlaying) {
+    if (isVideo) {
       sourceVideo.currentTime = 0;
       sourceVideo.play();
       startVideoLoop();
@@ -885,9 +1043,16 @@ exportMp4.addEventListener('click', async () => {
     console.error('Export failed:', err);
     alert('Video export failed. Try a shorter clip or use Chrome for best compatibility.');
   } finally {
+    animTime = savedAnimTime;
+    animStartTime = savedAnimStartTime;
+    renderScaleOverride = null;
+    // Re-render once at normal resolution so the on-screen canvas isn't left at export size
+    if (sourceImage || isVideo || isWebcam) renderDither();
     exportMp4.disabled = false;
     exportMp4.textContent = 'MP4';
     exportMp4.classList.remove('encoding');
+    // Resume animate loop for images if it was running
+    if (sourceImage && (animateEnabled || animateScaleEnabled)) startAnimateLoop();
   }
 });
 
